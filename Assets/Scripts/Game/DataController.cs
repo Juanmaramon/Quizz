@@ -26,7 +26,6 @@ public class DataController : MonoBehaviour {
 	{
 		string jsonData = (string)e.Data;
 
-		//JsonParser parser = new JsonParser(Resources.Load<TextAsset>("quiz"));
 		JsonParser parser = new JsonParser(jsonData);
 		List<QuestionData> questionsParsed = parser.Parse();
 
