@@ -21,6 +21,7 @@ public class Constants
 	// Game Events
 	public const string ON_CURRENT_DATA_RECEIVED = "OnCurrentDataReceived";
 	public const string ON_ANSWER_CLICK_DONE = "OnAnswerClickDone";
+    public const string ON_PAIRS_CHECK_DONE = "OnPairsCheckDone";
 	public const string IS_LAST_ROUND = "IsLastRound";
 	public const string LAST_ROUND_ANSWER = "LastRoundAnswer";
 	public const string ON_REMOTE_DATA_RECEIVED = "OnRemoteDataReceived";
@@ -28,4 +29,8 @@ public class Constants
 
 	// JSON with quizz data
 	public const string JSON_FILE = "quiz.json";
+
+    // Resources local path for image answer
+    public const string IMAGE_ANSWER_PATH = "Images/Answers/";
+    public const string IMAGE_OPTION_PATH = "Images/Options/";
 }

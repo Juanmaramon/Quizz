@@ -38,6 +38,7 @@ public class JsonParser
     private void ParseLevel(string level)
     {
         levelNode = Json.Serialize(json[level.ToLower()]);
+
         levelNodeProcessed = Json.Deserialize(levelNode) as List<object>;
 
         // All questions ...
@@ -59,26 +60,87 @@ public class JsonParser
             switch (par.Key.ToString())
             {
                 case "id":
+                    question.Id = int.Parse(par.Value.ToString());
+                    break;
+                case "type":
+                    question.Type = QuestionData.DecodeType(par.Value.ToString().ToUpper());
+                    break;
+                case "options":
+                    int j = 0;
+                    foreach (object val in (List<object>)par.Value)
+                    {
+                        switch (question.Type)
+                        {
+                            case QuestionData.QuestionType.IMAGES:
+                                question.Answers[j].OptionImagePath = val.ToString();
+                                break;
+                            case QuestionData.QuestionType.TEXTS:
+                                Debug.Log(val.ToString());
+                                question.Answers[j].OptionText = val.ToString();
+                                break;
+                        }
+                        j++;
+                    }
                     break;
 				case "question":
 					question.QuestionText = par.Value.ToString();
                     break;
 				case "answers":
 					question.Answers = new List<AnswerData> ();
-					foreach (object val in (List<object>)par.Value)
+                    AnswerData answer = null;
+                    foreach (object val in (List<object>)par.Value)
 					{
-						AnswerData answer = new AnswerData ();
-						answer.AnswerText = val.ToString ();
-						question.Answers.Add(answer);
+                        switch (question.Type)
+                        {
+                            case QuestionData.QuestionType.DEFAULT:
+                            case QuestionData.QuestionType.TEXTS:
+                                answer = new AnswerData();
+                                answer.AnswerText = val.ToString();
+                                question.Answers.Add(answer);
+                                break;
+                            case QuestionData.QuestionType.IMAGES:
+                                answer = new AnswerData();
+                                answer.AnswerImagePath = val.ToString();
+                                question.Answers.Add(answer);
+                                break;
+                        }
+						
 					}
                     break;
 				case "correct":
 					int i = 0;
-					foreach (object val in (List<object>)par.Value)
-					{
-						question.Answers [i].IsCorrect = bool.Parse(val.ToString());
-						i++;
-					}					
+                    Debug.Log(question.Id);
+                    switch (question.Type)
+                    {
+                        case QuestionData.QuestionType.DEFAULT:
+                            foreach (object val in (List<object>)par.Value)
+                            {
+                                question.Answers[i].IsCorrect = bool.Parse(val.ToString());
+                                i++;
+                            }
+                            break;
+                        case QuestionData.QuestionType.IMAGES:
+                        case QuestionData.QuestionType.TEXTS:
+                            List<int[]> tmplist = new List<int[]>();
+                            foreach (object val in (List<object>)par.Value)
+                            {
+                                question.Answers[i].QaCorrespondence = new List<int[]>();
+                                string tmpAnswer = val.ToString();
+                                int[] qaCorrespondenceNode = new int[2];
+                                qaCorrespondenceNode[0] = int.Parse(tmpAnswer.Split(':')[0]);
+                                qaCorrespondenceNode[1] = int.Parse(tmpAnswer.Split(':')[1]);
+                                tmplist.Add(qaCorrespondenceNode);
+                                i++;
+                            }
+                            i = 0;
+                            foreach (object val in (List<object>)par.Value)
+                            {
+                                question.Answers[i].QaCorrespondence = new List<int[]>(tmplist);
+                                i++;
+                            }
+                            break;
+                    }
+				
                     break;
 				case "timeLimit":
 					question.TimeLimit = float.Parse (par.Value.ToString());
@@ -88,7 +150,6 @@ public class JsonParser
 					break;
             }
         }
-
 		questionResult.Add (question);
     }
    
