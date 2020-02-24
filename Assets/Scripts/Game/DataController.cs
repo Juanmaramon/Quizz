@@ -7,10 +7,8 @@ public class DataController : MonoBehaviour {
 	RoundData[] allRoundData;
 	int currentRound;
 	bool lastRound = false;
-    private List<QuestionData> questionsParsed;
-    public bool random;
 
-    void Start () {
+	void Start () {
 		// Reiceive data from Remote storege (FireBase)
 		EventManager.StartListening<BasicEvent> (Constants.ON_REMOTE_DATA_RECEIVED, OnRemoteDataReceived);
 	
@@ -22,82 +20,14 @@ public class DataController : MonoBehaviour {
 		EventManager.StartListening<BasicEvent> (Constants.IS_LAST_ROUND, OnIsLastRound);
 
 		lastRound = false;
-
-        EventManager.TriggerEvent(Constants.ON_REMOTE_DATA_RECEIVED);
     }
 
-    // Knuth shuffle algorithm
-    public void Shuffle()
-    {
-        QuestionData tempGO;
-
-        var levels = EnumUtil.GetNames<Constants.Levels>();
-
-        // All levels ...
-        for (int j = 0; j < levels.Length; j++)
-        {
-            Debug.Log("Suffle " + GetMinQuestionIndex(j) + " " + GetMaxQuestionIndex(j));
-            for (int i = GetMinQuestionIndex(j); i < GetMaxQuestionIndex(j); i++)
-            {
-                int rnd = Random.Range(GetMinQuestionIndex(j), GetMaxQuestionIndex(j));
-                tempGO = questionsParsed[rnd];
-                questionsParsed[rnd] = questionsParsed[i];
-                questionsParsed[i] = tempGO;
-            }
-        }
-    }
-
-#pragma warning disable 0162
-    private int GetMaxQuestionIndex(int level)
-    {
-        switch (level)
-        {
-            case 0:
-                return Constants.QUESTIONS_PER_ROUND * 2;
-                break;
-            case 1:
-                return Constants.QUESTIONS_PER_ROUND * 4;
-                break;
-            case 2:
-                return Constants.QUESTIONS_PER_ROUND * 6;
-                break;
-        }
-
-        return 0;
-    }
-
-    private int GetMinQuestionIndex(int level)
-    {
-        switch (level)
-        {
-            case 0:
-                return 0;
-                break;
-            case 1:
-                return Constants.QUESTIONS_PER_ROUND * 2;
-                break;
-            case 2:
-                return Constants.QUESTIONS_PER_ROUND * 4;
-                break;
-        }
-        return 0;
-    }
-#pragma warning restore 0162
-
-    void OnRemoteDataReceived (BasicEvent e)
+	void OnRemoteDataReceived (BasicEvent e)
 	{
-		//string jsonData = (string)e.Data;
+		string jsonData = (string)e.Data;
 
-        JsonParser parser = new JsonParser(Resources.Load<TextAsset>("quiz").text);
-
-        //JsonParser parser = new JsonParser(jsonData);
-		questionsParsed = parser.Parse();
-
-        // Random question order
-        if (random)
-        {
-            Shuffle();
-        }
+		JsonParser parser = new JsonParser(jsonData);
+		List<QuestionData> questionsParsed = parser.Parse();
 
 		// 6 questions per round * 3 difficulty levels = 18 questions stored per round
 		int numberQuestions = Constants.QUESTIONS_PER_ROUND * EnumUtil.GetCount<Constants.Levels> ();

@@ -6,74 +6,35 @@ using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour 
 {
-    [Header("User")]
 	public Text userNameText;
-
-    [Header("Question")]
-    public Text questionText;
-
-    [Header("UI")]
-    public Text scoreText;
+	public Text questionText;
+	public Text scoreText;
 	public Text timeText;
 	public Text roundText;
 	public Text markerText;
 	public Text winText;
 	public Text loseText;
-
-    [Header("Pannels")]
-
-    public Fade qaPannelFade;
-	public Fade roundsPannelFade;
-	public Fade overPannelFade;
-    public Fade defaultAnswersFade;
-    public Fade imageTextAnswersFade;
-    public Fade imageTextOptionfade;
-    public Fade imageAnswerFade;
-
-    [Header("Pools")]
-
-    public SimpleObjectPool defaultAnswerButtonObjectPool;
-    public SimpleObjectPool imageOptionObjectPool;
-    public SimpleObjectPool imageAnswerObjectPool;
-    public SimpleObjectPool textOptionObjectPool;
-    public SimpleObjectPool textAnswerObjectPool;
-    public SimpleObjectPool imageAnswerButtonObjectPool;
-
-    [Header("Root objects")]
-
-    public Transform answerButtonDefaultParent;
-    public Transform answerImageTextParent;
-    public Transform optionImageParent;
-    public Transform imageAnswerButtonDefaultParent;
-
-    [Header("Audio")]
-
-    public AudioClip correctClip;
-    public AudioClip wrongClip;
-    public AudioSource audioSource;
+	public SCFade qaPannelFade;
+	public SCFade roundsPannelFade;
+	public SCFade overPannelFade;
+	public SimpleObjectPool answerButtonObjectPool;
+	public Transform answerButtonParent;
 	private RoundData currentRoundData;
 	private int currentRoundNumber = -1;
 	private QuestionData[] questionPool;
 	private bool isRoundActive;
-    private bool hasTimer;
 	private float timeRemaining;
 	private int questionNumber;
 	private int nextQuestionIndex;
 	private int playerScore;
 	private List<GameObject> answerButtonGameObjects = new List<GameObject>();
-    private List<GameObject> imageOptionGameObjects = new List<GameObject>();
-    private List<GameObject> answerImageGameObjects = new List<GameObject>();
-    private List<GameObject> textOptionGameObjects = new List<GameObject>();
-    private List<GameObject> answerTextGameObjects = new List<GameObject>();
-    private List<GameObject> imageAnswerButtonGameObjects = new List<GameObject>();
-    private QuestionData questionData;
+	private QuestionData questionData;
 	private int corrects;
 	private int correctsOnChunk;
 	private int errors;
 	private bool win;
 	private Constants.Levels currentLevel;
 	private UserLocalData user;
-    private int correctAnswersMultiResponse;
 
 	void Start()
 	{
@@ -81,13 +42,11 @@ public class GameController : MonoBehaviour
 		EventManager.StartListening<BasicEvent> (Constants.ON_CURRENT_DATA_RECEIVED, OnCurrentDataReceived);
 		EventManager.StartListening<BasicEvent> (Constants.ON_ANSWER_CLICK_DONE, OnAnswerClickDone);
 		EventManager.StartListening<BasicEvent> (Constants.LAST_ROUND_ANSWER, OnLastRoundAnswer);
-        EventManager.StartListening<BasicEvent> (Constants.ON_PAIRS_CHECK_DONE, OnPairsCheckDone);
-        playerScore = 0;
+		playerScore = 0;
 		questionNumber = 0;
 		currentRoundNumber = -1;
 		isRoundActive = false;
-        hasTimer = false;
-        corrects = correctsOnChunk = 0;
+		corrects = correctsOnChunk = 0;
 		errors = 0;
 		markerText.text = corrects + "/" + Constants.QUESTIONS_PER_ROUND;
 		user = UserLocal.ReadUserData ();
@@ -95,10 +54,9 @@ public class GameController : MonoBehaviour
 		userNameText.text = user.Name;
 		win = true;
 		currentLevel = user.Level;
-        correctAnswersMultiResponse = 0;
 
-        // Show Round #0, only for first round
-        if (currentRoundNumber == -1) 
+		// Show Round #0, only for first round
+		if (currentRoundNumber == -1) 
 		{
 			StartGame ();
 		}
@@ -109,8 +67,7 @@ public class GameController : MonoBehaviour
 		EventManager.StopListening<BasicEvent> (Constants.ON_CURRENT_DATA_RECEIVED, OnCurrentDataReceived);
 		EventManager.StopListening<BasicEvent> (Constants.ON_ANSWER_CLICK_DONE, OnAnswerClickDone);
 		EventManager.StopListening<BasicEvent> (Constants.LAST_ROUND_ANSWER, OnLastRoundAnswer);
-        EventManager.StopListening<BasicEvent> (Constants.ON_PAIRS_CHECK_DONE, OnPairsCheckDone);
-    }
+	}
 
 	private void OnCurrentDataReceived(BasicEvent e)
 	{
@@ -125,38 +82,14 @@ public class GameController : MonoBehaviour
 		Invoke("ShowQuestion", 2f);
 	}
 
-    private void OnAnswerClickDone(BasicEvent e)
+	private void OnAnswerClickDone(BasicEvent e)
 	{
 		bool isCorrect = (bool)e.Data;
 		
 		AnswerButtonClicked (isCorrect);
 	}
 
-    private void OnPairsCheckDone(BasicEvent e)
-    {
-        int[] indexes = (int[])e.Data;
-
-        correctAnswersMultiResponse++;
-
-        // All answers are ok
-        if (questionData.Answers.Count == correctAnswersMultiResponse)
-        {
-            AnswerButtonClicked(true);
-        }
-        else
-        {
-            audioSource.clip = correctClip;
-            audioSource.Play();
-            // Return to pool option and answer used
-            /*imageOptionObjectPool.ReturnObject(imageOptionGameObjects[indexes[0]-1]);
-            imageOptionGameObjects.RemoveAt(indexes[0]-1);
-
-            imageAnswerObjectPool.ReturnObject(answerOptionGameObjects[indexes[1]-1]);
-            answerOptionGameObjects.RemoveAt(indexes[1]-1);*/
-        }
-    }
-
-    private void OnLastRoundAnswer(BasicEvent e)
+	private void OnLastRoundAnswer(BasicEvent e)
 	{
 		bool isLastRound = (bool)e.Data;
 
@@ -193,49 +126,13 @@ public class GameController : MonoBehaviour
 
 	private void RemoveAnswerButtons()
 	{
-        // Hide all answer containers
-        defaultAnswersFade.StartFadeOut(0.1f);
-        imageTextAnswersFade.StartFadeOut(0.1f);
-        imageTextOptionfade.StartFadeOut(0.1f);
-        imageAnswerFade.StartFadeOut(0.1f);
-
-        // Remove old answer buttons
-        while (answerButtonGameObjects.Count > 0) 
+		// Remove old answer buttons
+		while (answerButtonGameObjects.Count > 0) 
 		{
-            defaultAnswerButtonObjectPool.ReturnObject (answerButtonGameObjects[0]);
+			answerButtonObjectPool.ReturnObject (answerButtonGameObjects[0]);
 			answerButtonGameObjects.RemoveAt (0);
 		}
-
-        while (imageOptionGameObjects.Count > 0)
-        {
-            imageOptionObjectPool.ReturnObject(imageOptionGameObjects[0]);
-            imageOptionGameObjects.RemoveAt(0);
-        }
-
-        while (answerImageGameObjects.Count > 0)
-        {
-            imageAnswerObjectPool.ReturnObject(answerImageGameObjects[0]);
-            answerImageGameObjects.RemoveAt(0);
-        }
-
-        while (textOptionGameObjects.Count > 0)
-        {
-            textOptionObjectPool.ReturnObject(textOptionGameObjects[0]);
-            textOptionGameObjects.RemoveAt(0);   
-        }
-
-        while (answerTextGameObjects.Count > 0)
-        {
-            textAnswerObjectPool.ReturnObject(answerTextGameObjects[0]);
-            answerTextGameObjects.RemoveAt(0);
-        }
-
-        while (imageAnswerButtonGameObjects.Count > 0)
-        {
-            imageAnswerButtonObjectPool.ReturnObject(imageAnswerButtonGameObjects[0]);
-            imageAnswerButtonGameObjects.RemoveAt(0);
-        }
-    }
+	}
 
 	private void ShowQuestion()
 	{
@@ -245,87 +142,15 @@ public class GameController : MonoBehaviour
 		questionData = questionPool [nextQuestionIndex];
 		questionText.text = questionData.QuestionText;
 		timeRemaining = questionData.TimeLimit;
-        correctAnswersMultiResponse = 0;
 
-        // The question have time or not?
-        if (timeRemaining == 0)
-        {
-            hasTimer = false;
-            timeText.text = Mathf.Round(timeRemaining).ToString();
-        }
-        else
-        {
-            hasTimer = true;
-        }
-
-        // Show containers depending on question type
-        switch (questionData.Type)
-        {
-            case QuestionData.QuestionType.DEFAULT:
-                defaultAnswersFade.StartFadeIn(0.3f);
-                break;
-            case QuestionData.QuestionType.IMAGES:
-            case QuestionData.QuestionType.TEXTS:
-                imageTextAnswersFade.StartFadeIn(0.3f);
-                imageTextOptionfade.StartFadeIn(0.3f);
-                break;
-            case QuestionData.QuestionType.IMAGE:
-                imageAnswersFade.StartFadeIn(0.3f);
-                break;
-        }
-
-        // Create N answer buttons
-        for (int i = 0; i < questionData.Answers.Count; i++) 
+		// Create N answer buttons
+		for (int i = 0; i < questionData.Answers.Count; i++) 
 		{
-            switch (questionData.Type)
-            {
-                case QuestionData.QuestionType.DEFAULT:
-                    GameObject answerButtonGameObject = defaultAnswerButtonObjectPool.GetObject();
-                    answerButtonGameObject.transform.SetParent(answerButtonDefaultParent, false);
-                    answerButtonGameObjects.Add(answerButtonGameObject);
-                    AnswerTextButton answerButton = answerButtonGameObject.GetComponent<AnswerTextButton>();
-                    answerButton.Setup(questionData.Answers[i]);
-                    break;
-                case QuestionData.QuestionType.IMAGES:
-                    // Create option
-                    GameObject imageOptionGameObject = imageOptionObjectPool.GetObject();
-                    imageOptionGameObject.transform.SetParent(optionImageParent, false);
-                    imageOptionGameObjects.Add(imageOptionGameObject);
-                    OptionImage optionImage = imageOptionGameObject.GetComponent<OptionImage>();
-                    optionImage.Setup(questionData.Answers[i], i+1);
-
-                    // Create answer
-                    GameObject answerImageGameObject = imageAnswerObjectPool.GetObject();
-                    answerImageGameObject.transform.SetParent(answerImageTextParent, false);
-                    answerImageGameObjects.Add(answerImageGameObject);
-                    AnswerImage answerImage = answerImageGameObject.GetComponent<AnswerImage>();
-                    answerImage.Setup(questionData.Answers[i], i+1);
-
-                    break;
-                case QuestionData.QuestionType.TEXTS:
-                    // Create option
-                    GameObject textOptionGameObject = textOptionObjectPool.GetObject();
-                    textOptionGameObject.transform.SetParent(optionImageParent, false);
-                    textOptionGameObjects.Add(textOptionGameObject);
-                    OptionText optionText = textOptionGameObject.GetComponent<OptionText>();
-                    optionText.Setup(questionData.Answers[i], i + 1);
-
-                    // Create answer
-                    GameObject answerTextGameObject = textAnswerObjectPool.GetObject();
-                    answerTextGameObject.transform.SetParent(answerImageTextParent, false);
-                    answerTextGameObjects.Add(answerTextGameObject);
-                    AnswerText answerText = answerTextGameObject.GetComponent<AnswerText>();
-                    answerText.Setup(questionData.Answers[i], i + 1);
-
-                    break;
-                case QuestionData.QuestionType.IMAGE:
-                    GameObject imageAnswerButtonGameObject = defaultAnswerButtonObjectPool.GetObject();
-                    imageAnswerButtonGameObject.transform.SetParent(answerButtonDefaultParent, false);
-                    answerButtonGameObjects.Add(imageAnswerButtonGameObject);
-                    AnswerImageButton imageAnswerButton = imageAnswerButtonGameObject.GetComponent<AnswerImageButton>();
-                    imageAnswerButton.Setup(questionData.Answers[i]);
-                    break;
-            }
+			GameObject answerButtonGameObject = answerButtonObjectPool.GetObject ();
+			answerButtonGameObject.transform.SetParent (answerButtonParent, false);
+			answerButtonGameObjects.Add (answerButtonGameObject);
+			AnswerButton answerButton = answerButtonGameObject.GetComponent<AnswerButton> ();
+			answerButton.Setup (questionData.Answers [i]);
 		}
 	}
 
@@ -334,9 +159,7 @@ public class GameController : MonoBehaviour
 		// Was correct?
 		if (isCorrect) 
 		{
-            audioSource.clip = correctClip;
-            audioSource.Play();
-            corrects++;
+			corrects++;
 			correctsOnChunk++;
 			// Show marker
 			markerText.text = corrects + "/" + Constants.QUESTIONS_PER_ROUND;
@@ -346,9 +169,7 @@ public class GameController : MonoBehaviour
 		}
 		else 
 		{
-            audioSource.clip = wrongClip;
-            audioSource.Play();
-            errors++;
+			errors++;
 		}
 
 		// Level check done on 1/2 questions and last question of every round (chunk)
@@ -445,7 +266,7 @@ public class GameController : MonoBehaviour
 		}
 	}
 
-    public void EndRound()
+	public void EndRound()
 	{
 		// Resets question index
 		questionNumber = 0;
@@ -516,7 +337,7 @@ public class GameController : MonoBehaviour
 	void Update()
 	{
 		// Update time if there is a question
-		if (isRoundActive && hasTimer) 
+		if (isRoundActive) 
 		{
 			timeRemaining -= Time.deltaTime;
 			UpdateTimeRemaing ();
